@@ -25,9 +25,10 @@ end vhdl;
 architecture vhdl_ARCH for vhdl is
 ----------general-definitions---------------------------------------------------
 constant ACTIVE: std_logic := '1';
-constant NOT_ACTIVE: std_logic := '0';
+constant NOT-ACTIVE: std_logic := '0';
 constant UP: std_logic := '1';
 constant DOWN: std_logic := '0';
+variable TerminalValue : interger;
 
 ----seven-segment-display-------------------------------------------------------
 constant ZERO_7SEG:  std_logic_vector(3 downto 0) := "0000";   --constants--
@@ -70,10 +71,10 @@ signal digit2_blank: std_logic;
 signal digit1_blank: std_logic;
 signal digit0_blank: std_logic;
 
-signal start: std_logic;
-
 signal countActive: std_logic := '0';
 signal OneSec_Count: std_logic;
+
+signal Decode: integer range 15 downto 0;
 
 signal restart: std_logic := '0';
 signal state;
@@ -137,20 +138,19 @@ end process;
 
 -------counter------------------------------------------------------------------
 ONE_SECOND: process(clk, state, btn_dn)                          --process--
-variable count: integer range := termval;
+variable count: integer range := TerminalValue;
 begin
    OneSec_Count <= '0';
        if(state = NOT-ACTIVE) then
            count := 0;
        elsif(rising_edge(clk)) then
            if(countActive = ACTIVE) then
-               if(count = 100_000_000) then
-                   OneSec_Count <= not OneSec_Count;
-                   count := 0;
-               elseif(dir = UP) then
+               if(dir = UP) then
                    count := count + 1;
                elseif(dir = DOWN) then
                    count := count - 1;
+               elseif(count := TerminalValue) then
+                   count := 0;
                end if;
            else
                OneSec_Count <= OneSec_Count;
@@ -235,9 +235,10 @@ begin
 
   TerminalValue <= termval;
 
+end process;
 
 ------switches-to-indicate-activity---------------------------------------------
-SwitchAct: process(sw, state, dr)
+SwitchAct: process(sw, state, dir)
 begin
 
   if (sw(14) = ACTIVE) then
@@ -251,3 +252,67 @@ begin
   elseif (sw(15) = NOT-ACTIVE) then
     dir <= DOWN;
   end if;
+
+end process;
+
+
+--DECODER-----------------------------------------------------------------------------
+DECODER: process(decode)                                   --process--
+variable digitValue: integer range 9 downto 0;
+begin
+   digitValue := 0;
+   digit3_blank <= DISABLE_DIGIT;
+   digit2_blank <= DISABLE_DIGIT;
+   digit0_blank <= ENABLE_DIGIT;
+   if(decode > 9) then
+   if(decode = 15) then
+       digit0_value <= ZERO_7SEGr;
+       digit1_blank <= ENABLE_DIGIT;
+       digit1_value <= TWO_7SEG;
+   else
+       digit1_blank <= ENABLE_DIGIT;
+       digit1_value <= ONE_7SEG;
+       digitValue := decode - 10;
+   end if;
+   else
+       digit1_blank <= DISABLE_DIGIT;
+       digitValue := decode;
+   end if;
+
+case(digitValue) is
+   when 0 =>
+       digit0_value <= ZERO_7SEG;
+       LED <= ZERO_LED;
+   when 1 =>
+       digit0_value <= ONE_7SEG;
+       LED <= ONE_LED;
+   when 2 =>
+       digit0_value <= TWO_7SEG;
+       LED <= TWO_LED;
+   when 3 =>
+       digit0_value <= THREE_7SEG;
+       LED <= THREE_LED;
+   when 4 =>
+       digit0_value <= FOUR_7SEG;
+       LED <= FOUR_LED;
+   when 5 =>
+       digit0_value <= FIVE_7SEG;
+       LED <= FIVE_LED;
+   when 6 =>
+       digit0_value <= SIX_7SEG;
+       LED <= SIX_LED;
+   when 7 =>
+       digit0_value <= SEVEN_7SEG;
+       LED <= SEVEN_LED;
+   when 8 =>
+       digit0_value <= EIGHT_7SEG;
+       LED <= EIGHT_LED;
+   when others =>
+       digit0_value <= NINE_7SEG;
+       LED <= NINE_LED;
+end case;
+
+end process;
+
+
+end vhdl_ARCH;
